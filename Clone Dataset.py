@@ -12,9 +12,17 @@
 # # Download latest version
 # path = kagglehub.dataset_download("artermiloff/steam-games-dataset")
 # print("Path to dataset files:", path)
+# import kagglehub
+
+# # Download latest version
+# path = kagglehub.dataset_download("junhachoi/all-ranked-solo-games-on-kr-server-24-hours")
+
+# print("Path to dataset files:", path)
+
+
 import kagglehub
 
 # Download latest version
-path = kagglehub.dataset_download("junhachoi/all-ranked-solo-games-on-kr-server-24-hours")
+path = kagglehub.dataset_download("thedevastator/youtube-trending-videos-dataset")
 
 print("Path to dataset files:", path)
