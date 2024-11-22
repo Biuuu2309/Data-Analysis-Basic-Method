@@ -1,1 +1,1 @@
-﻿SELECT * FROM Youtube
+﻿SELECT * FROM Youtube_Table
