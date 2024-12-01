@@ -102,8 +102,40 @@ UPDATE Youtube_Table
 -------------------------------------------------Dien cac gia tri vao cac fields NULL
 
 --Trending date
-SELECT Youtube_Table.[index], 
-FROM Youtube_Table
+	SELECT * FROM Youtube_Table
+	ORDER BY Youtube_Table.[index] ASC
+	
+	--Convert Date to String
+	SELECT CONVERT(NVARCHAR, trending_date, 120) AS ConvertedString
+	FROM Youtube_Table;
+	
+	ALTER TABLE Youtube_Table
+	ALTER COLUMN trending_date NVARCHAR(MAX);
+	
+	--Kiem tra kieu du lieu
+	SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+	FROM INFORMATION_SCHEMA.COLUMNS
+	WHERE TABLE_NAME = 'Youtube_Table' AND COLUMN_NAME = 'trending_date';
+
+--Views
+WITH CTE_Views
+AS
+(	--mean
+	SELECT AVG(sleep_hours) AS sleep
+	FROM mental_health
+	UNION 
+	--mode
+	select Top 1 Sleep_Hours 
+	from mental_health
+	group by Sleep_Hours
+	Order by count(*) desc
+	UNION
+	--median
+	SELECT AVG(Sleep_Hours)
+	FROM mental_health
+	WHERE User_ID IN (500,501)
+	)
+	SELECT MIN(sleep) FROM CTE
 
 
 
