@@ -6,6 +6,7 @@ import numpy as np
 L1 = [random.randint(-100, 100) for i in range(0, int(input("Nhap n: ")))]
 print(L1)
 S1 = pd.Series(L1)
+print(S1[1])
 L2 = []
 L2 = S1
 print(L2.dtype)
@@ -21,7 +22,7 @@ print(["False" for i in S1 if i != [j for j in S2]])
 
 #Cau 4
 mydict = {}
-listn = [str(input("Nhap ky tu: ")) for i in range (0, int(input("Nhap kich thuoc")))]
+listn = [str(input("Nhap ky tu: ")) for i in range (0, int(input("Nhap kich thuoc: ")))]
 for i in listn:
     mydict[i] = random.randint(1, 50)
 print(mydict)
@@ -79,3 +80,8 @@ print(S1A)
 
 S1B = pd.Series([S1A[i] for i in range(int(input("Nhap so nguyen k(k < m): ")), S1A.count())])
 print(S1B)
+
+S1C = pd.Series([int(v) for k,v in S1.items() if int(v) <= 0])
+print(S1C)
+
+#Cau 13
