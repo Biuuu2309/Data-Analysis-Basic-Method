@@ -702,15 +702,278 @@ ALTER COLUMN time_frame INT;
 
 SELECT * 
 FROM Youtube_Test
-WHERE tags = '[none]'
 ORDER BY [index] ASC
 
+--Kieu boolean
+ALTER TABLE Youtube_Test
+ADD field_bool INT
+UPDATE m
+SET m.field_bool = (SELECT CONCAT(CAST(comments_disabled AS NVARCHAR(1)), CAST(ratings_disabled AS NVARCHAR(1)), CAST(video_error_or_removed AS NVARCHAR(1))) FROM Youtube_Test WHERE Youtube_Test.[index] = m.[index])
+FROM Youtube_Test m;
+
+CREATE TABLE CRVF (
+	comments_disabled BIT,
+	ratings_disabled BIT,
+	video_error_or_removed BIT,
+	field_bool INT
+)
+INSERT INTO CRVF(comments_disabled, ratings_disabled, video_error_or_removed, field_bool)
+SELECT DISTINCT comments_disabled, ratings_disabled, video_error_or_removed, field_bool
+FROM Youtube_Test
+
+ALTER TABLE Youtube_Test
+DROP COLUMN comments_disabled, ratings_disabled, video_error_or_removed
+
+SELECT DISTINCT trending_date, publish_date
+FROM Youtube_Test
+ORDER BY trending_date
+
+--Trong quá trình chuyển đổi có yêu cầu tạo ra các table làm trung gian, SV cần tìm cách gộp các table vừa phát sinh có cùng cấu trúc, ý nghĩa để giảm bớt số lượng table thực tế sẽ dùng.CREATE TABLE Total_Table (	col1 INT,	col2 BIT,	col3 BIT,	col4 BIT,	col5 INT,	col6 NVARCHAR(100))INSERT INTO Total_Table(col1, col2, col3, col4, col5, col6)SELECT id, NULL, NULL, NULL, NULL, CAST(country_name AS nvarchar(50)) FROM Country_Table
+UNION ALL
+SELECT NULL, comments_disabled, ratings_disabled, video_error_or_removed, field_bool, NULL FROM CRVF
+UNION ALL 
+SELECT id, NULL, NULL, NULL, NULL, day_name FROM DOW_Table
+UNION ALL
+SELECT id, NULL, NULL, NULL, NULL, time_frame FROM TF_Table
+
+SELECT * FROM Total_Table
+
+DROP TABLE Country_Table
+DROP TABLE CRVF
+DROP TABLE DOW_Table
+DROP TABLE TF_Table
 
 
 
+--Sau khi hoàn tất tiền xử lý dữ liệu, đối với từng field trong dữ liệu, tùy thuộc kiểu dữ liệu của mỗi field, SV cần thống kê được các giá trị sau
+CREATE TABLE ThongKe (
+	FieldName NVARCHAR(200),
+	Mean NVARCHAR(200),
+	Mode NTEXT,
+	Median NVARCHAR(200),
+	Deviation NVARCHAR(200),
+	QTMIN NVARCHAR(200),
+	QT25 NVARCHAR(200),
+	QT50 NVARCHAR(200),
+	QT75 NVARCHAR(200),
+	QTMAX NVARCHAR(200),
+)
+--Trending Date - Mode
+WITH CTE AS (
+    SELECT trending_date, COUNT(*) AS cnt
+    FROM Youtube_Test
+    GROUP BY trending_date
+)
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'Trending Date', CAST((	SELECT STRING_AGG(trending_date, ' ; ') AS CombinedResult
+							FROM CTE
+							WHERE cnt = (SELECT MAX(cnt) FROM CTE)) AS NTEXT)
+FROM Youtube_Test
+
+--Channel Title - Mode
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'Channel Title', (SELECT TOP 1 channel_title
+FROM Youtube_Test
+GROUP BY channel_title
+ORDER BY COUNT(*) DESC)
+
+--Category Id - Mode
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'Category Id', CAST((SELECT TOP 1 category_id
+FROM Youtube_Test
+GROUP BY category_id
+ORDER BY COUNT(*) DESC) AS NVARCHAR(200))
+
+--Publish Date - Mode
+WITH CTE AS (
+    SELECT publish_date, COUNT(*) AS cnt
+    FROM Youtube_Test
+    GROUP BY publish_date
+)
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'Publish Date', CAST((	SELECT STRING_AGG(publish_date, ' ; ') AS CombinedResult
+							FROM CTE
+							WHERE cnt = (SELECT MAX(cnt) FROM CTE)) AS NTEXT)
+FROM Youtube_Test
+
+--Time Frame - Mode
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'Time Frame', CAST((SELECT TOP 1 time_frame
+FROM Youtube_Test
+GROUP BY time_frame
+ORDER BY COUNT(*) DESC) AS NVARCHAR(200))
+
+--published_day_of_week - Mode
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'published_day_of_week', CAST((SELECT TOP 1 published_day_of_week
+FROM Youtube_Test
+GROUP BY published_day_of_week
+ORDER BY COUNT(*) DESC) AS NVARCHAR(200))
+
+--Publish Country - Mode
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'Publish Country', CAST((SELECT TOP 1 publish_country
+FROM Youtube_Test
+GROUP BY publish_country
+ORDER BY COUNT(*) DESC) AS NVARCHAR(200))
+
+--Views - Mean - Mode - Median - Deviation - MIN - 25 - 50 - 75 - MAX
+WITH CTE AS (
+    SELECT views, COUNT(*) AS cnt
+    FROM Youtube_Test
+    GROUP BY views
+), CTE1
+AS 
+(
+	--Q1
+	SELECT TOP ( SELECT COUNT(*) / 4 FROM Youtube_Test) views AS views_q1
+	FROM Youtube_Test 
+	ORDER BY views ASC
+), CTE2
+AS
+(
+	--Q2
+	SELECT TOP ( SELECT COUNT(*) / 2 FROM Youtube_Test) views AS views_q2
+	FROM Youtube_Test 
+	ORDER BY views ASC
+), CTE3
+AS
+(
+	--Q3
+	SELECT TOP ( SELECT CAST(ROUND((COUNT(*) * 0.75), 0) AS INT) FROM Youtube_Test) views AS views_q3
+	FROM Youtube_Test 
+	ORDER BY views ASC
+)
+INSERT INTO ThongKe(FieldName, Mean, Mode, Median, Deviation, QTMIN, QT25, QT50, QT75, QTMAX)
+SELECT TOP 1 'Views', CAST((SELECT CAST(AVG(CAST(views AS BIGINT)) AS BIGINT) FROM Youtube_Test) AS NVARCHAR(200)), 
+CAST((SELECT STRING_AGG(views, ' ; ') AS CombinedResult FROM CTE WHERE cnt = (SELECT MAX(cnt) FROM CTE)) AS NTEXT),
+(SELECT views FROM Youtube_Test WHERE [index] IN (SELECT COUNT(*) / 2 FROM Youtube_Test)),
+(SELECT CAST(SQRT((1.0 / COUNT(*)) * SUM(POWER(CAST(views AS FLOAT), 2)) - POWER(AVG(CAST(views AS FLOAT)), 2)) AS BIGINT) AS dlc FROM Youtube_Test),
+(SELECT ((SELECT MAX(views_q1) FROM CTE1) - 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1)))),
+(SELECT MAX(views_q1) FROM CTE1), (SELECT MAX(views_q2) FROM CTE2), (SELECT MAX(views_q3) FROM CTE3),
+(SELECT ((SELECT MAX(views_q3) FROM CTE3) + 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1))))
+
+--Likes - Mean - Mode - Median - Deviation - MIN - 25 - 50 - 75 - MAX
+WITH CTE AS (
+    SELECT likes, COUNT(*) AS cnt
+    FROM Youtube_Test
+    GROUP BY likes
+), CTE1
+AS 
+(
+	--Q1
+	SELECT TOP ( SELECT COUNT(*) / 4 FROM Youtube_Test) likes AS views_q1
+	FROM Youtube_Test 
+	ORDER BY likes ASC
+), CTE2
+AS
+(
+	--Q2
+	SELECT TOP ( SELECT COUNT(*) / 2 FROM Youtube_Test) likes AS views_q2
+	FROM Youtube_Test 
+	ORDER BY likes ASC
+), CTE3
+AS
+(
+	--Q3
+	SELECT TOP ( SELECT CAST(ROUND((COUNT(*) * 0.75), 0) AS INT) FROM Youtube_Test) likes AS views_q3
+	FROM Youtube_Test 
+	ORDER BY likes ASC
+)
+INSERT INTO ThongKe(FieldName, Mean, Mode, Median, Deviation, QTMIN, QT25, QT50, QT75, QTMAX)
+SELECT TOP 1 'Likes', CAST((SELECT CAST(AVG(CAST(likes AS BIGINT)) AS BIGINT) FROM Youtube_Test) AS NVARCHAR(200)), 
+CAST((SELECT STRING_AGG(likes, ' ; ') AS CombinedResult FROM CTE WHERE cnt = (SELECT MAX(cnt) FROM CTE)) AS NTEXT),
+(SELECT likes FROM Youtube_Test WHERE [index] IN (SELECT COUNT(*) / 2 FROM Youtube_Test)),
+(SELECT CAST(SQRT((1.0 / COUNT(*)) * SUM(POWER(CAST(likes AS FLOAT), 2)) - POWER(AVG(CAST(likes AS FLOAT)), 2)) AS BIGINT) AS dlc FROM Youtube_Test),
+(SELECT ((SELECT MAX(views_q1) FROM CTE1) - 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1)))),
+(SELECT MAX(views_q1) FROM CTE1), (SELECT MAX(views_q2) FROM CTE2), (SELECT MAX(views_q3) FROM CTE3),
+(SELECT ((SELECT MAX(views_q3) FROM CTE3) + 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1))))
+
+--Dislikes - Mean - Mode - Median - Deviation - MIN - 25 - 50 - 75 - MAX
+WITH CTE AS (
+    SELECT dislikes, COUNT(*) AS cnt
+    FROM Youtube_Test
+    GROUP BY dislikes
+), CTE1
+AS 
+(
+	--Q1
+	SELECT TOP ( SELECT COUNT(*) / 4 FROM Youtube_Test) dislikes AS views_q1
+	FROM Youtube_Test 
+	ORDER BY dislikes ASC
+), CTE2
+AS
+(
+	--Q2
+	SELECT TOP ( SELECT COUNT(*) / 2 FROM Youtube_Test) dislikes AS views_q2
+	FROM Youtube_Test 
+	ORDER BY dislikes ASC
+), CTE3
+AS
+(
+	--Q3
+	SELECT TOP ( SELECT CAST(ROUND((COUNT(*) * 0.75), 0) AS INT) FROM Youtube_Test) dislikes AS views_q3
+	FROM Youtube_Test 
+	ORDER BY dislikes ASC
+)
+INSERT INTO ThongKe(FieldName, Mean, Mode, Median, Deviation, QTMIN, QT25, QT50, QT75, QTMAX)
+SELECT TOP 1 'Dislikes', CAST((SELECT CAST(AVG(CAST(dislikes AS BIGINT)) AS BIGINT) FROM Youtube_Test) AS NVARCHAR(200)), 
+CAST((SELECT STRING_AGG(dislikes, ' ; ') AS CombinedResult FROM CTE WHERE cnt = (SELECT MAX(cnt) FROM CTE)) AS NTEXT),
+(SELECT dislikes FROM Youtube_Test WHERE [index] IN (SELECT COUNT(*) / 2 FROM Youtube_Test)),
+(SELECT CAST(SQRT((1.0 / COUNT(*)) * SUM(POWER(CAST(dislikes AS FLOAT), 2)) - POWER(AVG(CAST(dislikes AS FLOAT)), 2)) AS BIGINT) AS dlc FROM Youtube_Test),
+(SELECT ((SELECT MAX(views_q1) FROM CTE1) - 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1)))),
+(SELECT MAX(views_q1) FROM CTE1), (SELECT MAX(views_q2) FROM CTE2), (SELECT MAX(views_q3) FROM CTE3),
+(SELECT ((SELECT MAX(views_q3) FROM CTE3) + 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1))))
+
+--Commentscount - Mean - Mode - Median - Deviation - MIN - 25 - 50 - 75 - MAX
+WITH CTE AS (
+    SELECT comment_count, COUNT(*) AS cnt
+    FROM Youtube_Test
+    GROUP BY comment_count
+), CTE1
+AS 
+(
+	--Q1
+	SELECT TOP ( SELECT COUNT(*) / 4 FROM Youtube_Test) comment_count AS views_q1
+	FROM Youtube_Test 
+	ORDER BY comment_count ASC
+), CTE2
+AS
+(
+	--Q2
+	SELECT TOP ( SELECT COUNT(*) / 2 FROM Youtube_Test) comment_count AS views_q2
+	FROM Youtube_Test 
+	ORDER BY comment_count ASC
+), CTE3
+AS
+(
+	--Q3
+	SELECT TOP ( SELECT CAST(ROUND((COUNT(*) * 0.75), 0) AS INT) FROM Youtube_Test) comment_count AS views_q3
+	FROM Youtube_Test 
+	ORDER BY comment_count ASC
+)
+INSERT INTO ThongKe(FieldName, Mean, Mode, Median, Deviation, QTMIN, QT25, QT50, QT75, QTMAX)
+SELECT TOP 1 'Comment Count', CAST((SELECT CAST(AVG(CAST(comment_count AS BIGINT)) AS BIGINT) FROM Youtube_Test) AS NVARCHAR(200)), 
+CAST((SELECT STRING_AGG(comment_count, ' ; ') AS CombinedResult FROM CTE WHERE cnt = (SELECT MAX(cnt) FROM CTE)) AS NTEXT),
+(SELECT comment_count FROM Youtube_Test WHERE [index] IN (SELECT COUNT(*) / 2 FROM Youtube_Test)),
+(SELECT CAST(SQRT((1.0 / COUNT(*)) * SUM(POWER(CAST(comment_count AS FLOAT), 2)) - POWER(AVG(CAST(comment_count AS FLOAT)), 2)) AS BIGINT) AS dlc FROM Youtube_Test),
+(SELECT ((SELECT MAX(views_q1) FROM CTE1) - 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1)))),
+(SELECT MAX(views_q1) FROM CTE1), (SELECT MAX(views_q2) FROM CTE2), (SELECT MAX(views_q3) FROM CTE3),
+(SELECT ((SELECT MAX(views_q3) FROM CTE3) + 1.5 * ((SELECT MAX(views_q3) FROM CTE3) - (SELECT MAX(views_q1) FROM CTE1))))
+
+--Field Bool - Mode
+INSERT INTO ThongKe(FieldName, Mode)
+SELECT TOP 1 'Field Bool', CAST((SELECT TOP 1 field_bool
+FROM Youtube_Test
+GROUP BY field_bool
+ORDER BY COUNT(*) DESC) AS NVARCHAR(200))
 
 
+SELECT *
+FROM Youtube_Test
+ORDER BY [index] ASC
 
+SELECT * FROM ThongKe
 
 
 
