@@ -728,7 +728,17 @@ SELECT DISTINCT trending_date, publish_date
 FROM Youtube_Test
 ORDER BY trending_date
 
---Trong quá trình chuyển đổi có yêu cầu tạo ra các table làm trung gian, SV cần tìm cách gộp các table vừa phát sinh có cùng cấu trúc, ý nghĩa để giảm bớt số lượng table thực tế sẽ dùng.CREATE TABLE Total_Table (	col1 INT,	col2 BIT,	col3 BIT,	col4 BIT,	col5 INT,	col6 NVARCHAR(100))INSERT INTO Total_Table(col1, col2, col3, col4, col5, col6)SELECT id, NULL, NULL, NULL, NULL, CAST(country_name AS nvarchar(50)) FROM Country_Table
+--Trong quá trình chuyển đổi có yêu cầu tạo ra các table làm trung gian, SV cần tìm cách gộp các table vừa phát sinh có cùng cấu trúc, ý nghĩa để giảm bớt số lượng table thực tế sẽ dùng.
+CREATE TABLE Total_Table (
+	col1 INT,
+	col2 BIT,
+	col3 BIT,
+	col4 BIT,
+	col5 INT,
+	col6 NVARCHAR(100)
+)
+INSERT INTO Total_Table(col1, col2, col3, col4, col5, col6)
+SELECT id, NULL, NULL, NULL, NULL, CAST(country_name AS nvarchar(50)) FROM Country_Table
 UNION ALL
 SELECT NULL, comments_disabled, ratings_disabled, video_error_or_removed, field_bool, NULL FROM CRVF
 UNION ALL 
