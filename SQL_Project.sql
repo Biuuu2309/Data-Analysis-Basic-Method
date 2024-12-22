@@ -780,6 +780,8 @@ SELECT TOP 1 'Trending Date', CAST((	SELECT STRING_AGG(trending_date, ' ; ') AS 
 							WHERE cnt = (SELECT MAX(cnt) FROM CTE)) AS NTEXT)
 FROM Youtube_Test
 
+SELECT * FROM ThongKe
+
 --Channel Title - Mode
 INSERT INTO ThongKe(FieldName, Mode)
 SELECT TOP 1 'Channel Title', (SELECT TOP 1 channel_title
@@ -985,26 +987,32 @@ ORDER BY [index] ASC
 
 SELECT * FROM ThongKe
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -----------------------------------------------------Data Transformation and Data Discretization-------------------------------------------------------------------------------------
+
+-----------------------------------------------------Data Reduction------------------------------------------------------------------------------------------------------------------
+--Phan cum dua theo the loai videos va views(category_id, views)
+WITH CTE AS (
+    SELECT category_id, SUM(CAST(views AS BIGINT)) AS Views_PC
+    FROM Youtube_Test
+    GROUP BY category_id
+)
+SELECT category_id, 
+       Views_PC,
+       CASE 
+           WHEN Views_PC >= 100000000 THEN 'High Value'
+           WHEN Views_PC >= 1000000 THEN 'Medium Value'
+           ELSE 'Low Value'
+       END AS ValueGroup
+FROM CTE;
+
+--Chon lua mau
+SELECT * 
+FROM Youtube_Test
+ORDER BY NEWID()
+LIMIT 1000;
+
+--Tong hop du lieu views theo published_day_of_week
+SELECT published_day_of_week, SUM(CAST(views AS BIGINT)) AS total_views
+FROM Youtube_Test
+GROUP BY published_day_of_week;
+-----------------------------------------------------Data Reduction------------------------------------------------------------------------------------------------------------------
