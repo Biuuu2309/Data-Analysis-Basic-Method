@@ -97,7 +97,7 @@ ggplot(data=Youtube, aes(x=category_id, group=publish_country, fill=publish_coun
   geom_density(adjust=1.5, position="fill") +
   theme_ipsum() +
   labs(title = "Density chart: About species videos of country")
-  theme_minimal() +
+  theme_minimal()
 
 #Boxplot chart 
 Youtube %>%
