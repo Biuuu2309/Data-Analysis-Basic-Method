@@ -20,8 +20,8 @@ FROM Youtube_Table
 --Trending date
 
 UPDATE Youtube_Test
-	SET trending_date = '20177-11-14'
-	WHERE Youtube_Test.[index] BETWEEN 10 AND 14
+	SET trending_date = '2017-13-11'
+	WHERE Youtube_Test.[index] BETWEEN 25 AND 29
 
 --Publish date
 
@@ -31,51 +31,52 @@ UPDATE Youtube_Test
 
 --Views
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET views = NULL
-	WHERE Youtube_Table.[index] BETWEEN 25 AND 29
+	WHERE Youtube_Test.[index] BETWEEN 25 AND 29
 
 --Likes
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET likes = NULL
-	WHERE Youtube_Table.[index] BETWEEN 30 AND 34
+	WHERE Youtube_Test.[index] BETWEEN 30 AND 34
 
 --Dislikes
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET dislikes = NULL
-	WHERE Youtube_Table.[index] BETWEEN 35 AND 39
+	WHERE Youtube_Test.[index] BETWEEN 35 AND 39
 
 --Comment count
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET comment_count = NULL
-	WHERE Youtube_Table.[index] BETWEEN 40 AND 44
+	WHERE Youtube_Test.[index] BETWEEN 40 AND 44
 
 --Comments disable
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET comments_disabled = NULL
-	WHERE Youtube_Table.[index] BETWEEN 45 AND 49
+	WHERE Youtube_Test.[index] BETWEEN 45 AND 49
 
 --Ratings disable
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET ratings_disabled = NULL
-	WHERE Youtube_Table.[index] BETWEEN 50 AND 54
+	WHERE Youtube_Test.[index] BETWEEN 50 AND 54
 
 --Video error or removed
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET video_error_or_removed = NULL
-	WHERE Youtube_Table.[index] BETWEEN 55 AND 59
+	WHERE Youtube_Test.[index] BETWEEN 55 AND 59
 
 --Tags
 
-UPDATE Youtube_Table
+UPDATE Youtube_Test
 	SET tags = NULL
-	WHERE Youtube_Table.[index] BETWEEN 65 AND 69
+	WHERE Youtube_Test.[index] BETWEEN 65 AND 69
+
 
 
 -------------------------------------------------Dien cac gia tri vao cac fields NULL
@@ -91,7 +92,7 @@ UPDATE Youtube_Table
 	FROM Youtube_Table;
 	
 	ALTER TABLE Youtube_Test
-	ALTER COLUMN trending_date NVARCHAR(MAX);
+	ALTER COLUMN publish_date NVARCHAR(MAX);
 	
 	--Kiem tra kieu du lieu
 	SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
@@ -423,7 +424,7 @@ ORDER BY Youtube_Test.[index] ASC
 
 --Lam min theo median
 	SELECT views INTO view_median
-	FROM Youtube_Table
+	FROM Youtube_Test
 	
 	WITH RankedData2 
 	AS 
@@ -508,13 +509,13 @@ ORDER BY Youtube_Test.[index] ASC
 
 
 --Tim va thay doi 5 giá trị nhỏ nhất trong views
-	UPDATE Youtube_Table_2
+	UPDATE Youtube_Test
 		SET views = views * 1.1
-		WHERE [index] IN (SELECT TOP 5 [index] FROM Youtube_Table_2 ORDER BY views ASC)
+		WHERE [index] IN (SELECT TOP 5 [index] FROM Youtube_Test ORDER BY views ASC)
 --Tìm va thay doi 5 giá trị lớn nhất trong views
-	UPDATE Youtube_Table_2
+	UPDATE Youtube_Test
 		SET views = views * 0.9
-		WHERE [index] IN (SELECT TOP 5 [index] FROM Youtube_Table_2 ORDER BY views DESC)
+		WHERE [index] IN (SELECT TOP 5 [index] FROM Youtube_Test ORDER BY views DESC)
 
 --Xac dinh gia tri ngoai le
 --Views
