@@ -96,7 +96,7 @@ UPDATE Youtube_Table
 	--Kiem tra kieu du lieu
 	SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
 	FROM INFORMATION_SCHEMA.COLUMNS
-	WHERE TABLE_NAME = 'Youtube_Table' AND COLUMN_NAME = 'trending_date';
+	WHERE TABLE_NAME = 'Youtube_Test';
 
 	--20177-11-14 -> 2017-11-14
 	SELECT trending_date
